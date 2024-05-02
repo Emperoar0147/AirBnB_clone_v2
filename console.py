@@ -19,16 +19,16 @@ class HBNBCommand(cmd.Cmd):
     prompt = '(hbnb) ' if sys.__stdin__.isatty() else ''
 
     classes = {
-               'BaseModel': BaseModel, 'User': User, 'Place': Place,
-               'State': State, 'City': City, 'Amenity': Amenity,
-               'Review': Review
-              }
+        'BaseModel': BaseModel, 'User': User, 'Place': Place,
+        'State': State, 'City': City, 'Amenity': Amenity,
+        'Review': Review
+    }
     dot_cmds = ['all', 'count', 'show', 'destroy', 'update']
     types = {
-             'number_rooms': int, 'number_bathrooms': int,
-             'max_guest': int, 'price_by_night': int,
-             'latitude': float, 'longitude': float
-            }
+        'number_rooms': int, 'number_bathrooms': int,
+        'max_guest': int, 'price_by_night': int,
+        'latitude': float, 'longitude': float
+    }
 
     def preloop(self):
         """Prints if isatty is false"""
@@ -114,22 +114,52 @@ class HBNBCommand(cmd.Cmd):
         pass
 
     def do_create(self, args):
-        """ Create an object of any class"""
+        """ Create an object of any class with given parameters"""
         if not args:
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+
+        args_list = args.split()
+        class_name = args_list[0]
+
+        # Check if the class exists
+        if class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
-        print(new_instance.id)
-        storage.save()
+
+        # Extract parameters from the command line
+        parameters = {}
+        for param in args_list[1:]:
+            # Split parameter into key and value
+            key, value = param.split("=")
+            # Replace underscores with spaces in key
+            key = key.replace("_", " ")
+            # Remove double quotes from value
+            value = value.replace('"', '')
+            # Convert value to appropriate type
+            if '.' in value:
+                parameters[key] = float(value)
+            elif value.isdigit():
+                parameters[key] = int(value)
+            else:
+                parameters[key] = value
+
+        # Create an instance of the class with given parameters
+        new_instance = HBNBCommand.classes[class_name](**parameters)
+        storage.save()  # Save the object to the file storage
+        print(new_instance.id)  # Print the ID of the created object
 
     def help_create(self):
         """ Help information for the create method """
-        print("Creates a class of any type")
-        print("[Usage]: create <className>\n")
+        print("Creates a class of any type with given parameters")
+        print("Command syntax: create <Class name> <param 1> <param 2> <param 3>...")
+        print("Param syntax: <key name>=<value>")
+        print("Value syntax:")
+        print("    String: \"<value>\" => starts with a double quote")
+        print("        any double quote inside the value must be escaped with a backslash \\")
+        print("        all underscores _ must be replaced by spaces . Example: You want to set the string My little house to the attribute name, your command line must be name=\"My_little_house\"")
+        print("    Float: <unit>.<decimal> => contains a dot .")
+        print("    Integer: <number> => default case\n")
 
     def do_show(self, args):
         """ Method to show an individual object """
