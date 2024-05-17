@@ -1,44 +1,56 @@
-# 101-setup_web_static.pp
-
-# Ensure nginx is installed
+# Ensure the package 'nginx' is installed
 package { 'nginx':
   ensure => installed,
 }
 
-# Ensure nginx service is running and enabled
+# Ensure nginx service is running and enabled at boot
 service { 'nginx':
   ensure     => running,
   enable     => true,
-  subscribe  => File['/etc/nginx/sites-available/default'],
+  subscribe  => Package['nginx'],
 }
 
-# Create the directory structure
-file { '/data/web_static/releases/test/':
+# Ensure /data directory exists
+file { '/data':
   ensure => directory,
-  owner  => 'www-data',
-  group  => 'www-data',
-  mode   => '0755',
-  require => Exec['mkdir -p /data/web_static/releases/test/'],
-}
-
-file { '/data/web_static/shared/':
-  ensure => directory,
-  owner  => 'www-data',
-  group  => 'www-data',
+  owner  => 'root',
+  group  => 'root',
   mode   => '0755',
 }
 
-exec { 'mkdir -p /data/web_static/releases/test/':
-  command => 'mkdir -p /data/web_static/releases/test/',
-  creates => '/data/web_static/releases/test/',
+# Ensure /data/web_static directory exists
+file { '/data/web_static':
+  ensure => directory,
+  owner  => 'root',
+  group  => 'root',
+  mode   => '0755',
 }
 
-exec { 'mkdir -p /data/web_static/shared/':
-  command => 'mkdir -p /data/web_static/shared/',
-  creates => '/data/web_static/shared/',
+# Ensure /data/web_static/releases directory exists
+file { '/data/web_static/releases':
+  ensure => directory,
+  owner  => 'root',
+  group  => 'root',
+  mode   => '0755',
 }
 
-# Create a test index.html file
+# Ensure /data/web_static/shared directory exists
+file { '/data/web_static/shared':
+  ensure => directory,
+  owner  => 'root',
+  group  => 'root',
+  mode   => '0755',
+}
+
+# Ensure /data/web_static/releases/test directory exists
+file { '/data/web_static/releases/test':
+  ensure => directory,
+  owner  => 'root',
+  group  => 'root',
+  mode   => '0755',
+}
+
+# Create a simple HTML file
 file { '/data/web_static/releases/test/index.html':
   ensure  => file,
   content => '<html>
@@ -48,49 +60,45 @@ file { '/data/web_static/releases/test/index.html':
     Holberton School
   </body>
 </html>',
-  owner  => 'www-data',
-  group  => 'www-data',
-  mode   => '0644',
+  owner   => 'root',
+  group   => 'root',
+  mode    => '0644',
 }
 
-# Create the symbolic link
+# Ensure the /data/web_static/current symbolic link exists and points to the /data/web_static/releases/test directory
 file { '/data/web_static/current':
   ensure => link,
   target => '/data/web_static/releases/test',
-  owner  => 'www-data',
-  group  => 'www-data',
-  require => File['/data/web_static/releases/test/'],
 }
 
-# Update nginx configuration
+# Ensure the Nginx configuration for hbnb_static
 file { '/etc/nginx/sites-available/default':
   ensure  => file,
-  content => template('nginx/default.erb'),
-  notify  => Service['nginx'],
-}
-
-# Template for Nginx configuration
-file { 'nginx_default_template':
-  ensure  => file,
-  path    => '/etc/puppetlabs/code/environments/production/modules/nginx/templates/default.erb',
   content => '
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    
+
     root /var/www/html;
     index index.html index.htm index.nginx-debian.html;
-    
-    server_name _;
 
-    location /hbnb_static/ {
-        alias /data/web_static/current/;
-        index index.html index.htm;
-    }
+    server_name _;
 
     location / {
         try_files $uri $uri/ =404;
     }
+
+    location /hbnb_static {
+        alias /data/web_static/current;
+        index index.html index.htm;
+    }
+}',
+  notify  => Service['nginx'],
 }
-',
+
+# Ensure the Nginx service is restarted if the configuration changes
+service { 'nginx':
+  ensure    => running,
+  enable    => true,
+  subscribe => File['/etc/nginx/sites-available/default'],
 }
