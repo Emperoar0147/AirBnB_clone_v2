@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""script that Starts a flask web application
+""" that Starts a flask web application
 / displays sth and  /hbnb displays also"""
 
 from flask import Flask
